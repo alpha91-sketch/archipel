@@ -410,6 +410,7 @@
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            initializeLayout();
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
@@ -424,15 +425,15 @@
             ocean: '#9aaa9a',
         };
 
-        // Island data
-        const islands = [
+        // Island data - will be positioned responsively
+        let islands = [
             {
                 name: 'Wahrheit & Unterscheidung',
                 shortName: 'Wahrheit',
                 description: 'Klare Wahrnehmung und kritische Analyse.',
                 color: colors.truth,
-                x: 300,
-                y: 250,
+                x: 0,
+                y: 0,
                 radius: 40,
                 goal: 'Klarheit gewinnen',
                 danger: 'Überanalyse',
@@ -445,8 +446,8 @@
                 shortName: 'System',
                 description: 'Strukturelles Denken und Mustererkennung.',
                 color: colors.system,
-                x: 900,
-                y: 250,
+                x: 0,
+                y: 0,
                 radius: 40,
                 goal: 'Ordnung herstellen',
                 danger: 'Abheben',
@@ -459,8 +460,8 @@
                 shortName: 'Kreativ',
                 description: 'Imagination, Synthese und künstlerische Expression.',
                 color: colors.creative,
-                x: 300,
-                y: 750,
+                x: 0,
+                y: 0,
                 radius: 40,
                 goal: 'Ausdruck ermöglichen',
                 danger: 'Zerstreuung',
@@ -473,8 +474,8 @@
                 shortName: 'Verkörpert',
                 description: 'Somatisches Bewusstsein und präsente Erdung.',
                 color: colors.embodied,
-                x: 900,
-                y: 750,
+                x: 0,
+                y: 0,
                 radius: 40,
                 goal: 'Erdung stabilisieren',
                 danger: 'Trägheit',
@@ -483,6 +484,25 @@
                 skills: ['Körper-Bewusstsein', 'Präsenz', 'Erdung', 'Sensorische Wahrnehmung'],
             },
         ];
+
+        // Initialize island positions responsively
+        function initializeLayout() {
+            const isMobile = window.innerWidth <= 768;
+            const padding = isMobile ? 60 : 100;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const offsetX = isMobile ? 80 : 300;
+            const offsetY = isMobile ? 120 : 250;
+
+            islands[0].x = centerX - offsetX;
+            islands[0].y = centerY - offsetY;
+            islands[1].x = centerX + offsetX;
+            islands[1].y = centerY - offsetY;
+            islands[2].x = centerX - offsetX;
+            islands[2].y = centerY + offsetY;
+            islands[3].x = centerX + offsetX;
+            islands[3].y = centerY + offsetY;
+        }
 
         // State management
         const stateManager = {
