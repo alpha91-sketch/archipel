@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#f5f3f0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Archipel">
+    <title>Archipel-Modell</title>
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Archipel-Modell%22,%22short_name%22:%22Archipel%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f5f3f0%22,%22theme_color%22:%22%23f5f3f0%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 192 192%27%3E%3Crect fill=%27%235a6b7d%27 width=%27192%27 height=%27192%27/%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Georgia', 'Garamond', serif;
+            background: #f5f3f0;
+            position: fixed;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        .ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .state-display {
+            position: fixed;
+            bottom: 40px;
+            left: 40px;
+            background: rgba(240, 238, 235, 0.8);
+            border: 1px solid #8b8680;
+            border-radius: 2px;
+            padding: 20px 25px;
+            color: #3a3935;
+            font-size: 14px;
+            pointer-events: auto;
+            line-height: 1.8;
+            letter-spacing: 0.5px;
+            z-index: 10;
+        }
+
+        .state-display .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.6;
+            margin-bottom: 8px;
+        }
+
+        .state-display .value {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .controls {
+            position: fixed;
+            top: 40px;
+            right: 40px;
+            background: rgba(240, 238, 235, 0.8);
+            border: 1px solid #8b8680;
+            border-radius: 2px;
+            padding: 15px 20px;
+            color: #3a3935;
+            font-size: 12px;
+            pointer-events: auto;
+            line-height: 1.8;
+            letter-spacing: 0.3px;
+            z-index: 10;
+        }
+
+        .clarity-display {
+            position: fixed;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(240, 238, 235, 0.8);
+            border: 1px solid #8b8680;
+            border-radius: 2px;
+            padding: 12px 20px;
+            color: #3a3935;
+            font-size: 12px;
+            pointer-events: auto;
+            letter-spacing: 0.3px;
+            z-index: 10;
+        }
+
+        .clarity-bar {
+            width: 120px;
+            height: 4px;
+            background: #d4cfc8;
+            margin-top: 6px;
+            position: relative;
+        }
+
+        .clarity-fill {
+            height: 100%;
+            background: #5a5550;
+            transition: width 0.2s ease;
+        }
+
+        .anchor-button {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(240, 238, 235, 0.8);
+            border: 1px solid #8b8680;
+            color: #3a3935;
+            font-size: 24px;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .anchor-button:active {
+            background: rgba(240, 238, 235, 0.95);
+        }
+
+        .anchor-button.active {
+            background: #8b8680;
+            color: #f5f3f0;
+        }
+
+        .detail-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(240, 238, 235, 0.98);
+            border-top: 1px solid #8b8680;
+            padding: 25px;
+            box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+            display: none;
+            z-index: 100;
+            max-height: 70vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        .detail-panel.active {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .detail-panel h2 {
+            color: #3a3935;
+            margin-bottom: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .detail-panel .detail-color {
+            width: 100%;
+            height: 6px;
+            margin-bottom: 16px;
+            opacity: 0.7;
+        }
+
+        .detail-panel p {
+            color: #555;
+            font-size: 12px;
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .detail-panel .section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #d4cfc8;
+        }
+
+        .detail-panel .section-title {
+            font-weight: 600;
+            color: #3a3935;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 8px;
+            opacity: 0.7;
+        }
+
+        .detail-panel ul {
+            font-size: 12px;
+            color: #555;
+            line-height: 1.8;
+            list-style: none;
+        }
+
+        .detail-panel li {
+            margin-left: 0;
+            padding-left: 12px;
+            position: relative;
+        }
+
+        .detail-panel li:before {
+            content: "–";
+            position: absolute;
+            left: 0;
+        }
+
+        .close-detail {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #8b8680;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            pointer-events: auto;
+        }
+
+        .close-detail:active {
+            opacity: 1;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .controls {
+                display: none;
+            }
+
+            .state-display {
+                bottom: 20px;
+                left: 20px;
+                padding: 16px 20px;
+                font-size: 13px;
+            }
+
+            .clarity-display {
+                top: 20px;
+                padding: 10px 16px;
+                font-size: 11px;
+            }
+
+            .clarity-bar {
+                width: 100px;
+            }
+
+            .anchor-button {
+                bottom: 20px;
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+
+            .detail-panel {
+                padding: 20px;
+                max-height: 65vh;
+            }
+
+            .detail-panel h2 {
+                font-size: 15px;
+                margin-bottom: 10px;
+            }
+
+            .detail-panel p {
+                font-size: 11px;
+            }
+
+            .detail-panel .section-title {
+                font-size: 10px;
+            }
+
+            .detail-panel ul {
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .state-display {
+                bottom: 15px;
+                left: 15px;
+                padding: 14px 16px;
+                font-size: 12px;
+                max-width: 150px;
+            }
+
+            .clarity-display {
+                top: 15px;
+                padding: 8px 12px;
+                font-size: 10px;
+            }
+
+            .clarity-bar {
+                width: 80px;
+                margin-top: 4px;
+            }
+
+            .anchor-button {
+                bottom: 15px;
+                width: 42px;
+                height: 42px;
+                font-size: 18px;
+            }
+
+            .detail-panel {
+                padding: 16px;
+                max-height: 60vh;
+            }
+
+            .detail-panel h2 {
+                font-size: 14px;
+            }
+
+            .detail-panel p {
+                font-size: 11px;
+                line-height: 1.6;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="ui-overlay">
+        <div class="clarity-display">
+            <div>Klarheit</div>
+            <div class="clarity-bar">
+                <div class="clarity-fill" id="clarityFill"></div>
+            </div>
+        </div>
+
+        <div class="state-display" id="stateDisplay">
+            <div class="label">Zustand</div>
+            <div class="value" id="stateValue">Meer</div>
+        </div>
+
+        <button class="anchor-button" id="anchorBtn" title="Anker">⚓</button>
+
+        <div class="controls">
+            <div>↑ ↓ ← → Bewegung</div>
+            <div>A / D Klarheit</div>
+            <div>Space Anker</div>
+        </div>
+
+        <div class="detail-panel" id="detailPanel">
+            <button class="close-detail" onclick="closeDetail()">✕</button>
+            <h2 id="detailTitle">Feld</h2>
+            <div class="detail-color" id="detailColor"></div>
+            <p id="detailDescription"></p>
+            
+            <div class="section">
+                <div class="section-title">Ziel</div>
+                <p id="detailGoal"></p>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Gefahr</div>
+                <p id="detailDanger"></p>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Ausgleich</div>
+                <p id="detailBalance"></p>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Aktivitäten</div>
+                <ul id="detailActivities"></ul>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Fähigkeiten</div>
+                <ul id="detailSkills"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Entsättigte Farbpalette
+        const colors = {
+            truth: '#5a6b7d',
+            system: '#6b6360',
+            creative: '#9b8b6f',
+            embodied: '#5a6b5a',
+            reede: '#8b8b8b',
+            ocean: '#9aaa9a',
+        };
+
+        // Island data
+        const islands = [
+            {
+                name: 'Wahrheit & Unterscheidung',
+                shortName: 'Wahrheit',
+                description: 'Klare Wahrnehmung und kritische Analyse.',
+                color: colors.truth,
+                x: 300,
+                y: 250,
+                radius: 40,
+                goal: 'Klarheit gewinnen',
+                danger: 'Überanalyse',
+                balance: 'Verkörperte Verankerung',
+                activities: ['Kritisches Denken', 'Fakten prüfen', 'Intuition verfeinern', 'Urteilskraft'],
+                skills: ['Analytisches Denken', 'Intuitive Wahrnehmung', 'Fakten-Prüfung', 'Urteilskraft'],
+            },
+            {
+                name: 'System & Meta-Denken',
+                shortName: 'System',
+                description: 'Strukturelles Denken und Mustererkennung.',
+                color: colors.system,
+                x: 900,
+                y: 250,
+                radius: 40,
+                goal: 'Ordnung herstellen',
+                danger: 'Abheben',
+                balance: 'Kreative Ausdruck',
+                activities: ['Muster erkennen', 'Systeme analysieren', 'Selbst-Reflexion', 'Perspektiven wechseln'],
+                skills: ['Muster-Erkennung', 'Struktur-Analyse', 'Selbst-Reflexion', 'Perspektiv-Wechsel'],
+            },
+            {
+                name: 'Kreative Ausdruck',
+                shortName: 'Kreativ',
+                description: 'Imagination, Synthese und künstlerische Expression.',
+                color: colors.creative,
+                x: 300,
+                y: 750,
+                radius: 40,
+                goal: 'Ausdruck ermöglichen',
+                danger: 'Zerstreuung',
+                balance: 'System & Meta-Denken',
+                activities: ['Ideen generieren', 'Kunstformen erkunden', 'Grenzen überschreiten', 'Experimentieren'],
+                skills: ['Kreatives Denken', 'Künstlerischer Ausdruck', 'Synthese', 'Innovation'],
+            },
+            {
+                name: 'Verkörperte Verankerung',
+                shortName: 'Verkörpert',
+                description: 'Somatisches Bewusstsein und präsente Erdung.',
+                color: colors.embodied,
+                x: 900,
+                y: 750,
+                radius: 40,
+                goal: 'Erdung stabilisieren',
+                danger: 'Trägheit',
+                balance: 'Wahrheit & Unterscheidung',
+                activities: ['Körper-Bewusstsein', 'Atmung & Präsenz', 'Bewegung', 'Sensorische Wahrnehmung'],
+                skills: ['Körper-Bewusstsein', 'Präsenz', 'Erdung', 'Sensorische Wahrnehmung'],
+            },
+        ];
+
+        // State management
+        const stateManager = {
+            current_state: 'open_sea',
+            navigation_locked: false,
+            clarity: 0.5,
+            selected_island: null,
+        };
+
+        // Marker position
+        const marker = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            targetX: canvas.width / 2,
+            targetY: canvas.height / 2,
+            speed: 8,
+        };
+
+        // Touch handling
+        let touchStartTime = 0;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const LONG_PRESS_DURATION = 600;
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                touchStartTime = Date.now();
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (e.touches.length === 0) {
+                const touchEndTime = Date.now();
+                const duration = touchEndTime - touchStartTime;
+                const rect = canvas.getBoundingClientRect();
+                const touchX = touchStartX - rect.left;
+                const touchY = touchStartY - rect.top;
+
+                // Long press (≈600ms) → toggle anchor
+                if (duration >= LONG_PRESS_DURATION) {
+                    stateManager.navigation_locked = !stateManager.navigation_locked;
+                    document.getElementById('anchorBtn').classList.toggle('active');
+                    return;
+                }
+
+                // Tap on island → show detail
+                for (let island of islands) {
+                    const dist = Math.sqrt((touchX - island.x) ** 2 + (touchY - island.y) ** 2);
+                    if (dist < island.radius * 1.5) {
+                        showIslandDetail(island);
+                        return;
+                    }
+                }
+
+                // Tap on map → set marker position
+                marker.targetX = touchX;
+                marker.targetY = touchY;
+            }
+        }, { passive: false });
+
+        // Keyboard handling (desktop)
+        const keysPressed = {};
+        
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            keysPressed[key] = true;
+            
+            if (e.key === ' ') {
+                e.preventDefault();
+                stateManager.navigation_locked = !stateManager.navigation_locked;
+                document.getElementById('anchorBtn').classList.toggle('active');
+            }
+            
+            if (key === 'a') stateManager.clarity = Math.max(0, stateManager.clarity - 0.05);
+            if (key === 'd') stateManager.clarity = Math.min(1, stateManager.clarity + 0.05);
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keysPressed[e.key.toLowerCase()] = false;
+        });
+
+        // Anchor button
+        document.getElementById('anchorBtn').addEventListener('click', () => {
+            stateManager.navigation_locked = !stateManager.navigation_locked;
+            document.getElementById('anchorBtn').classList.toggle('active');
+        });
+
+        function showIslandDetail(island) {
+            stateManager.selected_island = island;
+            document.getElementById('detailTitle').textContent = island.name;
+            document.getElementById('detailColor').style.backgroundColor = island.color;
+            document.getElementById('detailDescription').textContent = island.description;
+            document.getElementById('detailGoal').textContent = island.goal;
+            document.getElementById('detailDanger').textContent = island.danger;
+            document.getElementById('detailBalance').textContent = 'Wird häufig durch ' + island.balance + ' ausgeglichen.';
+            
+            const activitiesHtml = island.activities.map(a => `<li>${a}</li>`).join('');
+            document.getElementById('detailActivities').innerHTML = activitiesHtml;
+            
+            const skillsHtml = island.skills.map(s => `<li>${s}</li>`).join('');
+            document.getElementById('detailSkills').innerHTML = skillsHtml;
+            
+            document.getElementById('detailPanel').classList.add('active');
+        }
+
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.remove('active');
+            stateManager.selected_island = null;
+        }
+
+        // Drawing functions
+        function drawOcean(ctx) {
+            ctx.fillStyle = colors.ocean;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 60) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 60) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawIsland(ctx, island, isActive) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.beginPath();
+            ctx.ellipse(island.x, island.y + island.radius * 0.3, island.radius * 1.1, island.radius * 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            const opacity = isActive ? 0.85 : 0.7;
+            ctx.fillStyle = island.color;
+            ctx.globalAlpha = opacity;
+            ctx.beginPath();
+            ctx.arc(island.x, island.y, island.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            
+            ctx.strokeStyle = island.color;
+            ctx.globalAlpha = 0.4;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            
+            ctx.fillStyle = '#3a3935';
+            ctx.font = '12px Georgia';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(island.shortName, island.x, island.y);
+        }
+
+        function drawMarker(ctx, x, y, isAnchored) {
+            const size = 8;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.beginPath();
+            ctx.arc(x, y + 2, size + 1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = isAnchored ? '#8b8680' : '#5a5550';
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#3a3935';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        function updateMarkerPosition() {
+            if (!stateManager.navigation_locked) {
+                let moveX = 0;
+                let moveY = 0;
+                
+                if (keysPressed['arrowup'] || keysPressed['w']) moveY = -marker.speed;
+                if (keysPressed['arrowdown'] || keysPressed['s']) moveY = marker.speed;
+                if (keysPressed['arrowleft']) moveX = -marker.speed;
+                if (keysPressed['arrowright']) moveX = marker.speed;
+                
+                marker.targetX += moveX;
+                marker.targetY += moveY;
+                
+                marker.targetX = Math.max(0, Math.min(canvas.width, marker.targetX));
+                marker.targetY = Math.max(0, Math.min(canvas.height, marker.targetY));
+            }
+            
+            const dx = marker.targetX - marker.x;
+            const dy = marker.targetY - marker.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 0.5) {
+                const moveDistance = Math.min(marker.speed * 0.3, distance);
+                marker.x += (dx / distance) * moveDistance;
+                marker.y += (dy / distance) * moveDistance;
+            } else {
+                marker.x = marker.targetX;
+                marker.y = marker.targetY;
+            }
+        }
+
+        function updateState() {
+            let newState = 'open_sea';
+            
+            if (stateManager.navigation_locked) {
+                newState = 'anchored';
+            } else {
+                let nearIsland = false;
+                let inReede = false;
+                
+                islands.forEach((island) => {
+                    const dist = Math.sqrt((marker.x - island.x) ** 2 + (marker.y - island.y) ** 2);
+                    
+                    if (dist < island.radius) {
+                        nearIsland = true;
+                        newState = 'island';
+                    } else if (dist < island.radius + 50) {
+                        inReede = true;
+                        if (newState !== 'island') {
+                            newState = 'reede';
+                        }
+                    }
+                });
+            }
+            
+            stateManager.current_state = newState;
+        }
+
+        function updateUI() {
+            const stateValue = document.getElementById('stateValue');
+            
+            switch (stateManager.current_state) {
+                case 'open_sea':
+                    stateValue.textContent = 'Meer';
+                    break;
+                case 'island':
+                    stateValue.textContent = 'Insel';
+                    break;
+                case 'reede':
+                    stateValue.textContent = 'Reede. Integration.';
+                    break;
+                case 'anchored':
+                    stateValue.textContent = 'Anker.';
+                    break;
+            }
+            
+            const clarityFill = document.getElementById('clarityFill');
+            clarityFill.style.width = (stateManager.clarity * 100) + '%';
+        }
+
+        function animate() {
+            updateMarkerPosition();
+            updateState();
+            
+            drawOcean(ctx);
+            
+            islands.forEach((island) => {
+                const isActive = stateManager.current_state === 'island' && 
+                    Math.sqrt((marker.x - island.x) ** 2 + (marker.y - island.y) ** 2) < island.radius;
+                drawIsland(ctx, island, isActive);
+            });
+            
+            drawMarker(ctx, marker.x, marker.y, stateManager.navigation_locked);
+            
+            if (stateManager.current_state === 'reede') {
+                ctx.fillStyle = 'rgba(139, 139, 139, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            updateUI();
+            
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('data:application/javascript,self.addEventListener("install",e=>self.skipWaiting());self.addEventListener("activate",e=>e.waitUntil(clients.claim()));');
+        }
+    </script>
+</body>
+</html>
