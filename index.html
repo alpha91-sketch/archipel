@@ -407,9 +407,26 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
+        // Viewport management
+        const viewport = {
+            width: 0,
+            height: 0,
+            isMobile: false,
+            worldOffsetX: 0,
+            worldOffsetY: 0,
+        };
+
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            // Set canvas size to match device pixel ratio
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            ctx.scale(dpr, dpr);
+            
+            viewport.width = window.innerWidth;
+            viewport.height = window.innerHeight;
+            viewport.isMobile = window.innerWidth <= 768;
+            
             initializeLayout();
         }
         resizeCanvas();
@@ -487,10 +504,9 @@
 
         // Initialize island positions responsively
         function initializeLayout() {
-            const isMobile = window.innerWidth <= 768;
-            const padding = isMobile ? 60 : 100;
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
+            const isMobile = viewport.isMobile;
+            const centerX = viewport.width / 2;
+            const centerY = viewport.height / 2;
             const offsetX = isMobile ? 80 : 300;
             const offsetY = isMobile ? 120 : 250;
 
@@ -502,6 +518,12 @@
             islands[2].y = centerY + offsetY;
             islands[3].x = centerX + offsetX;
             islands[3].y = centerY + offsetY;
+            
+            // Center marker
+            marker.x = centerX;
+            marker.y = centerY;
+            marker.targetX = centerX;
+            marker.targetY = centerY;
         }
 
         // State management
@@ -514,10 +536,10 @@
 
         // Marker position
         const marker = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            targetX: canvas.width / 2,
-            targetY: canvas.height / 2,
+            x: 0,
+            y: 0,
+            targetX: 0,
+            targetY: 0,
             speed: 8,
         };
 
@@ -559,9 +581,11 @@
                     }
                 }
 
-                // Tap on map → set marker position
-                marker.targetX = touchX;
-                marker.targetY = touchY;
+                // Tap on map → set marker position (only if not anchored)
+                if (!stateManager.navigation_locked) {
+                    marker.targetX = touchX;
+                    marker.targetY = touchY;
+                }
             }
         }, { passive: false });
 
@@ -618,20 +642,20 @@
         // Drawing functions
         function drawOcean(ctx) {
             ctx.fillStyle = colors.ocean;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, viewport.width, viewport.height);
             
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
             ctx.lineWidth = 1;
-            for (let x = 0; x < canvas.width; x += 60) {
+            for (let x = 0; x < viewport.width; x += 60) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
+                ctx.lineTo(x, viewport.height);
                 ctx.stroke();
             }
-            for (let y = 0; y < canvas.height; y += 60) {
+            for (let y = 0; y < viewport.height; y += 60) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
+                ctx.lineTo(viewport.width, y);
                 ctx.stroke();
             }
         }
@@ -694,8 +718,8 @@
                 marker.targetX += moveX;
                 marker.targetY += moveY;
                 
-                marker.targetX = Math.max(0, Math.min(canvas.width, marker.targetX));
-                marker.targetY = Math.max(0, Math.min(canvas.height, marker.targetY));
+                marker.targetX = Math.max(0, Math.min(viewport.width, marker.targetX));
+                marker.targetY = Math.max(0, Math.min(viewport.height, marker.targetY));
             }
             
             const dx = marker.targetX - marker.x;
@@ -777,7 +801,7 @@
             
             if (stateManager.current_state === 'reede') {
                 ctx.fillStyle = 'rgba(139, 139, 139, 0.05)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillRect(0, 0, viewport.width, viewport.height);
             }
             
             updateUI();
@@ -785,6 +809,7 @@
             requestAnimationFrame(animate);
         }
 
+        initializeLayout();
         animate();
 
         // Register service worker for PWA
