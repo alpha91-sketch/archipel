@@ -417,11 +417,9 @@
         };
 
         function resizeCanvas() {
-            // Set canvas size to match device pixel ratio
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = window.innerWidth * dpr;
-            canvas.height = window.innerHeight * dpr;
-            ctx.scale(dpr, dpr);
+            // Set canvas size to match viewport exactly
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             
             viewport.width = window.innerWidth;
             viewport.height = window.innerHeight;
@@ -785,11 +783,28 @@
             clarityFill.style.width = (stateManager.clarity * 100) + '%';
         }
 
+        let frameCount = 0;
+        
         function animate() {
+            frameCount++;
             updateMarkerPosition();
             updateState();
             
             drawOcean(ctx);
+            
+            // DEBUG: Draw center point
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.arc(viewport.width / 2, viewport.height / 2, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // DEBUG: Log once
+            if (frameCount === 1) {
+                console.log('Canvas:', canvas.width, 'x', canvas.height);
+                console.log('Viewport:', viewport.width, 'x', viewport.height);
+                console.log('Marker:', marker.x, marker.y);
+                console.log('Island 0:', islands[0].x, islands[0].y);
+            }
             
             islands.forEach((island) => {
                 const isActive = stateManager.current_state === 'island' && 
